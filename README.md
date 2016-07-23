@@ -8,3 +8,5 @@ The only ones I've seen are started and tuned manually. Using steel bearing ball
 The length of the pendulums can be adjusted, so I can get them roughly in time, but they will be kept accurate by varying the strength of the electromagnetic kick on each pendulum. When the pendulum swings through a larger angle, it goes slightly slower. This should be enough to keep them in time. Let's see if that works.....
 
 If I can get them all under PID control, I should be able to get them to sync up no matter what the initial positions are. That's the goal.
+
+Still figuring out what the license should be, since this is not code-only, but probably CC-BY-SA-4.0 for the designs and MIT for the software.
