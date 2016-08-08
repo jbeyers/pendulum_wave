@@ -1,4 +1,4 @@
-a = 0.6; // washer thickness
+a = 0.8; // washer thickness
 b = 3.2; // washer rim width
 c = 6.4; // washer ID
 
