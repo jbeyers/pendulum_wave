@@ -1,23 +1,17 @@
-a = 2.4; // Thickness of the holder
-d = 24.8; // Diameter of the ball
-b = d/2; // width of the holder
-c = d/20; // reduce diameter of clip by this much to ensure tight grip.
-e = d/4; // Cutout size
+a = 6; // Gap between bars
+b = 20; // width of the bars
+c = 29; // Width of whole thing
+d = 24; // Width of slot
+e = 3; // Outside wall thickness
+t = 0.25; // tolerance
 
-$fs=0.02;
-difference() {
-    intersection() {
-        sphere(r=d/2+a);
-        cube([d+2*a, d+2*a, b], center=true);
+rotate([180,0,0]) {
+    difference() {
+        cube([e+t+b+t+a+t+b+t+e, c, b+t+e]);
+        translate([e, 0, 0]) cube([b+t+t, c, b+t]);
+        translate([e+t+b+t+a, 0, 0]) cube([b+t+t, c, b+t]);
+        translate([b, 0, 0]) cube([b+t+t, c, b+t-a]);
+        translate([e+t+b+t, (c-d)/2, 0]) cube([a, d, b+t]);
+        translate([e+t+b+t, (c-d)/2, 0]) cube([a/2, d, b+t+e]);
     }
-    sphere(r=d/2);
-    translate([0,d+2*a-e,0]) cube([d+2*a, d+2*a, b], center=true);
-
 }
-
-translate([0, -(d/2+a), 0])
-difference() {
-    cylinder(b, r=a, center=true);
-    cylinder(b, r=a/2, center=true);
-}
-
