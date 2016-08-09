@@ -80,7 +80,7 @@ void setup()
     period_10 = period_9 - 1;
     period_11 = period_10 - 1;
     period_12 = period_11 - 1;
-    pulse = 4;
+    pulse = 10;
 }
 
 void loop() {
