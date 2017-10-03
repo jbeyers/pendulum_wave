@@ -12,11 +12,11 @@ For the electromagnets: I ordered some some 0.2mm wire from Ebay. Doing 1000 tur
 Calculations:
 -------------
 
-Wind coils around a 6mm soft iron nail (actual diameter 5.6mm)
-Will probably use 0.2 mm magnet wire (32 AWG)
-Roughly: coil with 6mm ID, 25mm long, 1000 turns, requires 23m of wire
-Area of nail in 28 square mm for 6 mm nail, 23 square mm for 5.6mm nail
-Google for 'area of circle'
+- Wind coils around a 6mm soft iron nail (actual diameter 5.6mm)
+- Will probably use 0.2 mm magnet wire (32 AWG)
+- Roughly: coil with 6mm ID, 25mm long, 1000 turns, requires 23m of wire
+- Area of nail in 28 square mm for 6 mm nail, 23 square mm for 5.6mm nail
+- Google for 'area of circle'
 
 Sources:
 --------
