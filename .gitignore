@@ -1,2 +1,5 @@
 *.stl
 *.gcode
+electronics/*.bak
+electronics/*.kicad_pcb-bak
+electronics/*.net
