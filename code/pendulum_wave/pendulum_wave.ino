@@ -1,6 +1,6 @@
 const int trigger_level = 128; // deviation from average needed for the sensor to trigger.
 const float first_tempo = 61.0; // Tempo in bpm of the first pendulum
-const unsigned long pulse = 36ul; // Driver pulse length in milliseconds.
+const unsigned long pulse = 32ul; // Driver pulse length in milliseconds.
 const unsigned long lockout = 350ul; // Sensor lockout after triggered, in milliseconds.
 const int pendulums = 8;
 
@@ -107,14 +107,9 @@ void loop() {
         where = (now % 60000ul)/periods[i];
         modulo = where - (int)where;
 
-        // The trigger is too sensitive
-        if (now - previous_triggers_2[i] < (long)periods[i] - 100ul) {
-          trigger_levels[i] = trigger_levels[i] + 1;
-        }
-
         // Only pulse if the speed is too slow or if we are behind
         // TODO: This is overly simplistic
-        if (modulo < 0.70 && periods[i] <= (float)(now - previous_triggers_2[i]) + 10 * modulo) {
+        if (modulo < 0.70 && periods[i] <= (float)(now - previous_triggers_2[i]) + min(10 * modulo, 2)) {
           if ( pendulum_to_view < 0 && switch_time < now ) {
             pendulum_to_view = i;
           }
@@ -149,15 +144,6 @@ void loop() {
       digitalWrite(i + 2, LOW);
     }
 
-  }
-  if (now - second_timer > 1000ul) {
-    for ( i = 0; i < pendulums; i++ ) {
-      // The trigger is not sensitive enough
-      if (now - previous_triggers_2[i] > (unsigned long)periods[i] + 200ul) {
-        trigger_levels[i] = trigger_levels[i] - 10;
-      }
-    }
-    second_timer+=1000ul;
   }
 
   // wait for the analog-to-digital converter to settle after the last reading
