@@ -1,7 +1,6 @@
 const int trigger_level = 128; // deviation from average needed for the sensor to trigger.
 const float first_tempo = 61.0; // Tempo in bpm of the first pendulum
-//const unsigned long pulse = 36ul; // Driver pulse length in milliseconds.
-const unsigned long pulse = 24ul; // Driver pulse length in milliseconds.
+const unsigned long pulse = 36ul; // Driver pulse length in milliseconds.
 const unsigned long lockout = 350ul; // Sensor lockout after triggered, in milliseconds.
 const int pendulums = 8;
 
@@ -47,17 +46,17 @@ void setup() {
 // delay, 1 for the main code loop.
 void loop() {
   //if (Serial.available() > 0 ) {
-  if (now - switch_time > 3500ul ) {
-    //pendulum_to_view = Serial.parseInt();
-    pendulum_to_view = pendulum_to_view + 1;
-    if (pendulum_to_view > 7) {
-      pendulum_to_view = 0;
-    }
-    Serial.print("Switching to pendulum ");
-    Serial.print(pendulum_to_view);
-    Serial.println();
-    switch_time = now;
-  }
+  //if (now - switch_time > 3500ul ) {
+  //  //pendulum_to_view = Serial.parseInt();
+  //  pendulum_to_view = pendulum_to_view + 1;
+  //  if (pendulum_to_view > 7) {
+  //    pendulum_to_view = 0;
+  //  }
+  //  Serial.print("Switching to pendulum ");
+  //  Serial.print(pendulum_to_view);
+  //  Serial.println();
+  //  switch_time = now;
+  //}
   now = millis();
   for ( i = 0; i < pendulums; i++ ) {
 
@@ -115,27 +114,29 @@ void loop() {
 
         // Only pulse if the speed is too slow or if we are behind
         // TODO: This is overly simplistic
-        if (modulo < 0.70 && periods[i] <= (float)(now - previous_triggers_2[i])) {
+        if (modulo < 0.70 && periods[i] <= (float)(now - previous_triggers_2[i]) + 10 * modulo) {
+          if ( pendulum_to_view < 0 && switch_time < now ) {
+            pendulum_to_view = i;
+          }
           if ( i == pendulum_to_view ) {
-            Serial.print("pulsing");
-            Serial.println();
             pulses[i] = now + pulse;
             digitalWrite(i + 2, HIGH);
-          }
-        }
-        if ( i == pendulum_to_view ) {
-          Serial.print(i);
-          Serial.print(" | where = ");
-          Serial.print(where);
-          Serial.print(" | imbalance = ");
-          Serial.print(imbalances[i]);
-          Serial.print(" | expected period = ");
-          Serial.print(periods[i]);
-          Serial.print(" | actual period = ");
-          Serial.print(now - previous_triggers_2[i]);
-          Serial.println();
-        }
 
+            Serial.print(i);
+            Serial.print(" | where = ");
+            Serial.print(where);
+            Serial.print(" | imbalance = ");
+            Serial.print(imbalances[i]);
+            Serial.print(" | expected period = ");
+            Serial.print(periods[i]);
+            Serial.print(" | actual period = ");
+            Serial.print(now - previous_triggers_2[i]);
+            Serial.println();
+          }
+        } else {
+          pendulum_to_view = -1;
+          switch_time = now + lockout;
+        }
       }
       previous_triggers_2[i] = previous_triggers[i];
       previous_triggers[i] = now;
