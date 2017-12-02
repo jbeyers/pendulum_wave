@@ -1,14 +1,14 @@
 const int trigger_level = 128; // deviation from average needed for the sensor to trigger.
 const float first_tempo = 61.0; // Tempo in bpm of the first pendulum
-const unsigned long pulse = 32ul; // Driver pulse length in milliseconds.
+const unsigned long pulse = 40ul; // Driver pulse length in milliseconds.
 const unsigned long lockout = 350ul; // Sensor lockout after triggered, in milliseconds.
+const unsigned long switch_lockout = 1400ul; // Sensor lockout after triggered, in milliseconds.
 const int pendulums = 8;
 
 unsigned long now; // The millis count for the current main loop
 int sensors[pendulums]; // The immediate sensor readings
 int averages[pendulums]; // Sensor long-term averages
 int triggers[pendulums]; // The fast moving sensor trigger values
-int trigger_levels[pendulums]; // The fast moving sensor trigger values
 unsigned long lockouts[pendulums]; // Trackers for the lockout timings
 unsigned long pulses[pendulums]; // Trackers for the pulses
 float periods[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
@@ -19,8 +19,7 @@ bool pos[pendulums]; // flag if this is a positive or negative swing direction. 
 float where; // Computes where in the cycle we are.
 float modulo; // computes where in the swing we are.
 int i; // Loop iterator
-int pendulum_to_view = 0; //Which pendulum to view
-unsigned long second_timer;
+int pendulum_to_view = -1; //Which pendulum to view
 unsigned long switch_time;
 
 void setup() {
@@ -38,25 +37,12 @@ void setup() {
 
     // Set the output pins
     pinMode(i + 2, OUTPUT);
-    trigger_levels[i] = trigger_level;
   }
 }
 
 // The main loop is assumed to take 2-3 ms to run. 1 for analog reads, 1 for
 // delay, 1 for the main code loop.
 void loop() {
-  //if (Serial.available() > 0 ) {
-  //if (now - switch_time > 3500ul ) {
-  //  //pendulum_to_view = Serial.parseInt();
-  //  pendulum_to_view = pendulum_to_view + 1;
-  //  if (pendulum_to_view > 7) {
-  //    pendulum_to_view = 0;
-  //  }
-  //  Serial.print("Switching to pendulum ");
-  //  Serial.print(pendulum_to_view);
-  //  Serial.println();
-  //  switch_time = now;
-  //}
   now = millis();
   for ( i = 0; i < pendulums; i++ ) {
 
@@ -65,8 +51,8 @@ void loop() {
 
     // average holds a slow-moving long-term average of the sensor reading. The
     // way we compute it should result in insensitivity to spikes.
-    // Note: The multiplication factor of 8 allows us to do integer math here.
-    // The sensor value is 0-1023, so the average will never be more than 9000.
+    // Note: The multiplication factor above allows us to do integer math here.
+    // The sensor value is 0-1023, so the average will never be more than 17000.
     if ( sensors[i] > averages[i]) {
       averages[i] = averages[i] + 1;
     }
@@ -109,7 +95,7 @@ void loop() {
 
         // Only pulse if the speed is too slow or if we are behind
         // TODO: This is overly simplistic
-        if (modulo < 0.70 && periods[i] <= (float)(now - previous_triggers_2[i]) + min(10 * modulo, 2)) {
+        if (modulo < 0.85 && periods[i] <= float(now - previous_triggers_2[i] + min(4ul, long(10.0 * modulo)))) {
           if ( pendulum_to_view < 0 && switch_time < now ) {
             pendulum_to_view = i;
           }
@@ -129,8 +115,23 @@ void loop() {
             Serial.println();
           }
         } else {
-          pendulum_to_view = -1;
-          switch_time = now + lockout;
+          if (pendulum_to_view == i) {
+            pendulum_to_view = -1;
+            switch_time = now + lockout + 1111ul;
+            
+            Serial.print("sw | ");
+            Serial.print(i);
+            Serial.print(" | where = ");
+            Serial.print(where);
+            Serial.print(" | imbalance = ");
+            Serial.print(imbalances[i]);
+            Serial.print(" | expected period = ");
+            Serial.print(periods[i]);
+            Serial.print(" | actual period = ");
+            Serial.print(now - previous_triggers_2[i]);
+            Serial.println();
+
+          }
         }
       }
       previous_triggers_2[i] = previous_triggers[i];
@@ -143,7 +144,6 @@ void loop() {
     } else {
       digitalWrite(i + 2, LOW);
     }
-
   }
 
   // wait for the analog-to-digital converter to settle after the last reading
