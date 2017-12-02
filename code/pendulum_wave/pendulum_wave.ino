@@ -85,7 +85,7 @@ void loop() {
     // Trigger detection of a magnet entering
     if ((sensors[i] > (averages[i] + trigger_level)) && (lockouts[i] < now )) {
       // Reset the lockout
-      lockouts[i] = now + lockout;
+      lockouts[i] = now + (unsigned long)(periods[i] * 0.4);
 
       // Change swing direction.
       pos[i] = !pos[i];
