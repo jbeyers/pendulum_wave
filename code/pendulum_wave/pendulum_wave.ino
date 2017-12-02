@@ -20,7 +20,7 @@ bool pos[pendulums]; // flag if this is a positive or negative swing direction. 
 float where; // Computes where in the cycle we are.
 float modulo; // computes where in the swing we are.
 int i; // Loop iterator
-int pendulum_to_view = 7; //Which pendulum to view
+int pendulum_to_view = 0; //Which pendulum to view
 unsigned long second_timer;
 unsigned long switch_time;
 
@@ -49,7 +49,7 @@ void loop() {
   //if (Serial.available() > 0 ) {
   if (now - switch_time > 3500ul ) {
     //pendulum_to_view = Serial.parseInt();
-    pendulum_to_view = pendulum_to_view + 2;
+    pendulum_to_view = pendulum_to_view + 1;
     if (pendulum_to_view > 7) {
       pendulum_to_view = 0;
     }
@@ -124,7 +124,7 @@ void loop() {
           }
         }
         if ( i == pendulum_to_view ) {
-          Serial.print(trigger_levels[i]);
+          Serial.print(i);
           Serial.print(" | where = ");
           Serial.print(where);
           Serial.print(" | imbalance = ");
