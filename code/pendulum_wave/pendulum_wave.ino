@@ -8,7 +8,6 @@ const int pendulums = 8;
 unsigned long now; // The millis count for the current main loop
 int sensors[pendulums]; // The immediate sensor readings
 int averages[pendulums]; // Sensor long-term averages
-int triggers[pendulums]; // The fast moving sensor trigger values
 unsigned long lockouts[pendulums]; // Trackers for the lockout timings
 unsigned long pulses[pendulums]; // Trackers for the pulses
 float ideal_periods[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
@@ -64,14 +63,6 @@ void loop() {
     }
     if ( sensors[i] < averages[i]) {
       averages[i] = averages[i] - 1;
-    }
-
-    // Much faster average for picking up changes
-    if ( sensors[i] > triggers[i] ) {
-      triggers[i] = triggers[i] + 16;
-    }
-    if ( sensors[i] < triggers[i] ) {
-      triggers[i] = triggers[i] - 16;
     }
 
     // Trigger detection of a magnet entering
