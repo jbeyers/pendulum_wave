@@ -11,9 +11,12 @@ int averages[pendulums]; // Sensor long-term averages
 int triggers[pendulums]; // The fast moving sensor trigger values
 unsigned long lockouts[pendulums]; // Trackers for the lockout timings
 unsigned long pulses[pendulums]; // Trackers for the pulses
-float periods[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
+float ideal_periods[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
+unsigned long average_periods[pendulums]; // Keep the previous swing trigger timestamps for imbalance calculations.
+unsigned long expected_triggers[pendulums]; // When we expect the next positive trigger.
 unsigned long previous_triggers[pendulums]; // Keep the previous swing trigger timestamps for imbalance calculations.
 unsigned long previous_triggers_2[pendulums]; // Keep the previous swing trigger timestamps for imbalance calculations.
+int trigger_counts[pendulums]; // Count positive triggers to implement a state machine
 int imbalances[pendulums]; // Track imbalance in the swing length.
 bool pos[pendulums]; // flag if this is a positive or negative swing direction. positive is the one taking longer.
 float where; // Computes where in the cycle we are.
@@ -33,7 +36,10 @@ void setup() {
     lockouts[i] = now + 10000ul;
 
     // Set the period for each pendulum
-    periods[i] = 60000.0 / (first_tempo - (float)i);
+    ideal_periods[i] = 60000.0 / (first_tempo - (float)i);
+
+    // Initial values for average periods
+    average_periods[i] = 60000ul / (long(first_tempo) - long(i));
 
     // Set the output pins
     pinMode(i + 2, OUTPUT);
@@ -71,7 +77,7 @@ void loop() {
     // Trigger detection of a magnet entering
     if ((sensors[i] > (averages[i] + trigger_level)) && (lockouts[i] < now )) {
       // Reset the lockout
-      lockouts[i] = now + (unsigned long)(periods[i] * 0.4);
+      lockouts[i] = now + (unsigned long)(ideal_periods[i] * 0.4);
 
       // Change swing direction.
       pos[i] = !pos[i];
@@ -90,12 +96,12 @@ void loop() {
           }
         }
         // Where in the cycle should we be?
-        where = (now % 60000ul)/periods[i];
+        where = (now % 60000ul)/ideal_periods[i];
         modulo = where - (int)where;
 
         // Only pulse if the speed is too slow or if we are behind
         // TODO: This is overly simplistic
-        if (modulo < 0.85 && periods[i] <= float(now - previous_triggers_2[i] + min(4ul, long(10.0 * modulo)))) {
+        if (modulo < 0.85 && ideal_periods[i] <= float(now - previous_triggers_2[i] + min(4ul, long(10.0 * modulo)))) {
           if ( pendulum_to_view < 0 && switch_time < now ) {
             pendulum_to_view = i;
           }
@@ -109,7 +115,7 @@ void loop() {
             Serial.print(" | imbalance = ");
             Serial.print(imbalances[i]);
             Serial.print(" | expected period = ");
-            Serial.print(periods[i]);
+            Serial.print(ideal_periods[i]);
             Serial.print(" | actual period = ");
             Serial.print(now - previous_triggers_2[i]);
             Serial.println();
@@ -126,7 +132,7 @@ void loop() {
             Serial.print(" | imbalance = ");
             Serial.print(imbalances[i]);
             Serial.print(" | expected period = ");
-            Serial.print(periods[i]);
+            Serial.print(ideal_periods[i]);
             Serial.print(" | actual period = ");
             Serial.print(now - previous_triggers_2[i]);
             Serial.println();
@@ -134,8 +140,20 @@ void loop() {
           }
         }
       }
+      // Update the previous trigger times
       previous_triggers_2[i] = previous_triggers[i];
       previous_triggers[i] = now;
+
+      // Update the average periods
+      if (now - previous_triggers_2[i] < average_periods[i]) {
+        average_periods[i] -= 1ul;
+      } else if (now - previous_triggers_2[i] > average_periods[i]) {
+        average_periods[i] += 1ul;
+      }
+
+      // Update the expected next trigger times
+      expected_triggers[i] = now + average_periods[i];
+
     }
 
     // Write out the pulse
