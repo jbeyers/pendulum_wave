@@ -11,6 +11,7 @@ int averages[pendulums]; // Sensor long-term averages
 unsigned long lockouts[pendulums]; // Trackers for the lockout timings
 unsigned long pulses[pendulums]; // Trackers for the pulses
 float ideal_periods[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
+float wheres[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
 unsigned long average_periods[pendulums]; // Keep the previous swing trigger timestamps for imbalance calculations.
 unsigned long expected_triggers[pendulums]; // When we expect the next positive trigger.
 unsigned long previous_triggers[pendulums]; // Keep the previous swing trigger timestamps for imbalance calculations.
@@ -26,12 +27,14 @@ int j; // Loop iterator
 int pendulum_to_view = -1; //Which pendulum to view
 unsigned long switch_time;
 int min_counts;
+int display_function;
 
 void setup() {
   Serial.begin(9600);
   // initialize serial communications at 9600 bps:
   now = millis();
   switch_time = now;
+  display_function = 0;
   for ( i = 0; i < pendulums; i++ ) {
 
     // Lock out the counters and timers for 10 seconds, enough for the averages to settle
@@ -55,34 +58,54 @@ void setup() {
 // delay, 1 for the main code loop.
 void loop() {
   now = millis();
+  if (Serial.available() > 0 ) {
+    display_function = Serial.parseInt();
+    Serial.print("Switching to function ");
+    Serial.print(display_function);
+    Serial.println();
+  }
+
   if ( now - switch_time > 2001 ) {
     switch_time = now;
     pendulum_to_view += 1;
     if (pendulum_to_view > 7) {
       pendulum_to_view = 0;
     }
-    Serial.print(pendulum_to_view);
-    Serial.print(" | where = ");
-    Serial.print(where);
-    Serial.print(" | imb= ");
-    Serial.print(imbalances[pendulum_to_view]);
-    Serial.print(" | ideal = ");
-    Serial.print(ideal_periods[pendulum_to_view]);
-    Serial.print(" | actual = ");
-    Serial.print(average_periods[pendulum_to_view]);
-    Serial.println();
-    Serial.print("triggers: ");
-    for ( j = 0; j < pendulums; j++ ) {
-      Serial.print(" | ");
-      Serial.print(expected_triggers[j]);
+    if (display_function == 0) {
+      Serial.print(pendulum_to_view);
+      Serial.print(" | where = ");
+      Serial.print(where);
+      Serial.print(" | imb= ");
+      Serial.print(imbalances[pendulum_to_view]);
+      Serial.print(" | ideal = ");
+      Serial.print(ideal_periods[pendulum_to_view]);
+      Serial.print(" | actual = ");
+      Serial.print(average_periods[pendulum_to_view]);
+      Serial.println();
+    } else if (display_function == 1) {
+      Serial.print("where");
+      for ( j = 0; j < pendulums; j++ ) {
+        Serial.print(" | ");
+        Serial.print(wheres[j]);
+      }
+      Serial.println();
+    } else if (display_function == 2) {
+      Serial.print("imbalances");
+      for ( j = 0; j < pendulums; j++ ) {
+        Serial.print(" | ");
+        Serial.print(imbalances[j]);
+      }
+      Serial.println();
+    } else if (display_function == 3) {
+      Serial.print("periods");
+      for ( j = 0; j < pendulums; j++ ) {
+        Serial.print(" | ");
+        Serial.print(ideal_periods[j]);
+        Serial.print("/");
+        Serial.print(average_periods[j]);
+      }
+      Serial.println();
     }
-    Serial.println();
-    Serial.print("pulses  : ");
-    for ( j = 0; j < pendulums; j++ ) {
-      Serial.print(" | ");
-      Serial.print(pulses[j]);
-    }
-    Serial.println();
   }
 
   for ( i = 0; i < pendulums; i++ ) {
@@ -115,19 +138,20 @@ void loop() {
 
         // Tally the swing imbalance and if it's the reverse of what we expect, reverse the swing directions.
         if (now - previous_triggers[i] >= previous_triggers[i] - previous_triggers_2[i]) {
-          if (imbalances[i] < 30) {
+          if (imbalances[i] < 4) {
             imbalances[i]++;
           }
         } else {
           imbalances[i]--;
-          if (imbalances[i] < -30) {
-            imbalances[i] = 0;
+          if (imbalances[i] < -4) {
+            imbalances[i] = 4;
             pos[i] = !pos[i];
           }
         }
 
         // Where in the cycle should we be?
         where = (now % 60000ul)/ideal_periods[i];
+        wheres[i] = where;
         modulo = where - (int)where;
 
         // Only pulse if the speed is too slow and we are behind
@@ -165,7 +189,7 @@ void loop() {
     for ( j = 0; j < pendulums; j++ ) {
       min_counts = min(trigger_counts[j], min_counts);
     }
-    if (min_counts > 2) {
+    if (min_counts > 3) {
       for ( j = 0; j < pendulums; j++ ) {
         trigger_counts[j] = 0;
       }
