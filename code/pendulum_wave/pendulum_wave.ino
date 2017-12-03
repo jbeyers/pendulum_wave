@@ -155,7 +155,7 @@ void loop() {
         modulo = where - (int)where;
 
         // Only pulse if the speed is too slow and we are behind
-        if (modulo < 0.85 && ideal_periods[i] <= float(now - previous_triggers_2[i] + min(4ul, long(10.0 * modulo)))) {
+        if (modulo < 0.75 && ideal_periods[i] <= float(now - previous_triggers_2[i] + min(4ul, long(20.0 * modulo)))) {
           should_pulse[i] = true;
         } else {
           should_pulse[i] = false;
@@ -189,7 +189,7 @@ void loop() {
     for ( j = 0; j < pendulums; j++ ) {
       min_counts = min(trigger_counts[j], min_counts);
     }
-    if (min_counts > 3) {
+    if (min_counts > 2) {
       for ( j = 0; j < pendulums; j++ ) {
         trigger_counts[j] = 0;
       }
