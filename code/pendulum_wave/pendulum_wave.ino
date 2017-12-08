@@ -28,6 +28,10 @@ int pendulum_to_view = -1; //Which pendulum to view
 unsigned long switch_time;
 int min_counts;
 int display_function;
+// PID loop parameters;
+float loop_p;
+float loop_i;
+float loop_d;
 
 void setup() {
   Serial.begin(9600);
@@ -127,7 +131,7 @@ void loop() {
     // Trigger detection of a magnet entering
     if ((sensors[i] > (averages[i] + trigger_level)) && (lockouts[i] < now )) {
 
-      // Reset the lockout
+      // Reset the lockout. This prevents spurious triggering which could throw off the position
       lockouts[i] = now + long(ideal_periods[i] * 0.4);
 
       // Change swing direction.
@@ -136,7 +140,14 @@ void loop() {
       // The triggers trigger every time the magnet passes the coil. We only want to work on the positive swing.
       if (pos[i]) {
 
-        // Tally the swing imbalance and if it's the reverse of what we expect, reverse the swing directions.
+        // Over time we see if the current swing is longer than the previous
+        // one. The coil that senses the swing is off-center, so over time we
+        // expect the tally to go up (if our assumption of swing direction is
+        // correct) or down (if it's not).  Tally the swing imbalance and if
+        // it's the reverse of what we expect, reverse the swing directions.
+        // Four gives us a nice balance here: It's slow enough that spurious
+        // signals will not shift it, and it's fast enough that if it does, it
+        // will switch back before the pendulum gets totally out of sync.
         if (now - previous_triggers[i] >= previous_triggers[i] - previous_triggers_2[i]) {
           if (imbalances[i] < 4) {
             imbalances[i]++;
@@ -153,6 +164,28 @@ void loop() {
         where = (now % 60000ul)/ideal_periods[i];
         wheres[i] = where;
         modulo = where - (int)where;
+
+        // These numbers are needed for the PID control loop. We need to know:
+        // * How far behind we are (proportional)
+        // * How fast we are catching up (derivative)
+        // * How much we should offset the value for (integral)
+
+        // proportional
+        // The modulo is always positive. Shift it by a quarter, so that we can
+        // do calculations around the zero point. We need this because the
+        // modulo is circular: If more than 0.75, it is considered to be fast
+        // for the next cycle, instead of slow for this one. 0.75 is chosen
+        // because we can actively control the cycle from 0.75 down to 0, while
+        // if it's bigger, we need to just not power anything and hope that it
+        // will slow down enough without losing the count.
+        modulo = modulo - 0.25;
+
+        // integral calculations.
+        // This is not really an integral calculation, just a long-running
+        // moving average. Same result, but both faster-settling and slower to
+        // go haywire, I think.
+        if ( modulo < 0 ) {
+          loop_i = loop_i + 1.0/128.0;
 
         // Only pulse if the speed is too slow and we are behind
         if (modulo < 0.75 && ideal_periods[i] <= float(now - previous_triggers_2[i] + min(4ul, long(20.0 * modulo)))) {
