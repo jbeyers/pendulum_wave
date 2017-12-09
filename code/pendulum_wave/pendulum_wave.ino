@@ -12,10 +12,14 @@ unsigned long lockouts[pendulums]; // Trackers for the lockout timings
 unsigned long pulses[pendulums]; // Trackers for the pulses
 float ideal_periods[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
 float wheres[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
+float integrals[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
+float derivatives[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
+float proportionals[pendulums]; // Swing period for each pendulum. Needed to accurately control speed.
 unsigned long average_periods[pendulums]; // Keep the previous swing trigger timestamps for imbalance calculations.
 unsigned long expected_triggers[pendulums]; // When we expect the next positive trigger.
 unsigned long previous_triggers[pendulums]; // Keep the previous swing trigger timestamps for imbalance calculations.
 unsigned long previous_triggers_2[pendulums]; // Keep the previous swing trigger timestamps for imbalance calculations.
+unsigned long pulse_widths[pendulums]; // Keep the previous swing trigger timestamps for imbalance calculations.
 int trigger_counts[pendulums]; // Count positive triggers to implement a state machine
 bool should_pulse[pendulums];
 int imbalances[pendulums]; // Track imbalance in the swing length.
@@ -26,12 +30,15 @@ int i; // Loop iterator
 int j; // Loop iterator
 int pendulum_to_view = -1; //Which pendulum to view
 unsigned long switch_time;
+unsigned long pulse_width;
 int min_counts;
 int display_function;
 // PID loop parameters;
 float loop_p;
 float loop_i;
 float loop_d;
+float p_value;
+float d_value;
 
 void setup() {
   Serial.begin(9600);
@@ -39,6 +46,11 @@ void setup() {
   now = millis();
   switch_time = now;
   display_function = 0;
+  loop_p = 1.0;
+  loop_i = 1.0/32.0; // Small, so it takes a while to settle, but does not go haywire.
+  loop_d = 10.0;
+  p_value = 0.0;
+  d_value = 0.0;
   for ( i = 0; i < pendulums; i++ ) {
 
     // Lock out the counters and timers for 10 seconds, enough for the averages to settle
@@ -109,6 +121,24 @@ void loop() {
         Serial.print(average_periods[j]);
       }
       Serial.println();
+    } else if (display_function == 4) {
+      Serial.print("pids");
+      for ( j = 0; j < pendulums; j++ ) {
+        Serial.print(" | ");
+        Serial.print(proportionals[j]);
+        Serial.print("/");
+        Serial.print(integrals[j]);
+        Serial.print("/");
+        Serial.print(derivatives[j]);
+      }
+      Serial.println();
+    } else if (display_function == 5) {
+      Serial.print("pulses");
+      for ( j = 0; j < pendulums; j++ ) {
+        Serial.print(" | ");
+        Serial.print(pulse_widths[j]);
+      }
+      Serial.println();
     }
   }
 
@@ -162,7 +192,7 @@ void loop() {
 
         // Where in the cycle should we be?
         where = (now % 60000ul)/ideal_periods[i];
-        wheres[i] = where;
+        wheres[i] = where - 0.25;
         modulo = where - (int)where;
 
         // These numbers are needed for the PID control loop. We need to know:
@@ -170,7 +200,6 @@ void loop() {
         // * How fast we are catching up (derivative)
         // * How much we should offset the value for (integral)
 
-        // proportional
         // The modulo is always positive. Shift it by a quarter, so that we can
         // do calculations around the zero point. We need this because the
         // modulo is circular: If more than 0.75, it is considered to be fast
@@ -180,19 +209,27 @@ void loop() {
         // will slow down enough without losing the count.
         modulo = modulo - 0.25;
 
+        // proportional
+        p_value = min(modulo * ideal_periods[i] * loop_p, 40);
+        proportionals[i] = p_value;
+
         // integral calculations.
         // This is not really an integral calculation, just a long-running
         // moving average. Same result, but both faster-settling and slower to
         // go haywire, I think.
-        if ( modulo < 0 ) {
-          loop_i = loop_i + 1.0/128.0;
-
-        // Only pulse if the speed is too slow and we are behind
-        if (modulo < 0.75 && ideal_periods[i] <= float(now - previous_triggers_2[i] + min(4ul, long(20.0 * modulo)))) {
-          should_pulse[i] = true;
-        } else {
-          should_pulse[i] = false;
+        if ( modulo < 0.0 && integrals[i] >= -40.0) {
+          integrals[i] = integrals[i] - loop_i;
+        } else if ( modulo > 0.0 && integrals[i] <= 40.0) {
+          integrals[i] = integrals[i] + loop_i;
         }
+
+        // Derivative is the period compared to the ideal one.
+        d_value = (ideal_periods[i] - (float)average_periods[i]) * loop_d;
+        derivatives[i] = d_value;
+
+        // Work out the pulse width
+        pulse_width = long(min(max(p_value + integrals[i] - d_value, 0.0), 40.0));
+        pulse_widths[i] = pulse_width;
 
         // Update the trigger counts
         trigger_counts[i] = trigger_counts[i] + 1;
@@ -200,8 +237,8 @@ void loop() {
         // Update the expected next pulse start and stop times only if we are not actively triggering
         if (trigger_counts[i] > 2) {
           expected_triggers[i] = now + average_periods[i];
-          if (should_pulse[i]) {
-            pulses[i] = expected_triggers[i] + pulse;
+          if (pulse_width > 0) {
+            pulses[i] = expected_triggers[i] + pulse_width;
           }
         }
         // Update the average periods
