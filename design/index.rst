@@ -1,22 +1,13 @@
 Basic design
 ============
 
-The design uses a frame made from square aluminium tubing, with 3D printed corner brackets I designed because I did not like any of the ones I found on Thingiverse. See xxxx for the thingiverse design.
+The design uses a frame made from square aluminium tubing, with 3D printed corner brackets I designed because I did not like any of the ones I found on Thingiverse. See `here<https://www.thingiverse.com/thing:2781519>`_ for the thingiverse design and the parts folder for the code.
 
-Using a square box design is not the most stable option, but it does allow me to resize the whole thing as I see fit.
+Using a square box design is not the most stiff option, but it does allow me to resize the whole thing as I see fit.
 
 The square tubing cut list spreadsheet has the list of cut lengths. I also designed brackets at the top to hang and adjust each pendulum to easily get the correct length for the period of the pendulum. The clips for the bearing balls are 3D printed and then drilled to ensure a smooth path for the line to go through. They simply clip onto the balls.
 
-For the electromagnets: I ordered some some 0.2mm wire from Ebay. Doing 1000 turns of wire around a 6mm soft iron nail should give me enough of an electromagnet to give the bearing balls a kick in the right direction. The magnet will be slightly offset from each ball, to ensure that the machine can start without any external input.
-
-Calculations:
--------------
-
-- Wind coils around a 6mm soft iron nail (actual diameter 5.6mm)
-- Will probably use 0.2 mm magnet wire (32 AWG)
-- Roughly: coil with 6mm ID, 25mm long, 1000 turns, requires 23m of wire
-- Area of nail in 28 square mm for 6 mm nail, 23 square mm for 5.6mm nail
-- Google for 'area of circle'
+For the electromagnets, I got some 0.2mm wire from a friend. Doing 750 turns of wire around an air core should give me enough of an electromagnet to give the bearing balls a kick in the right direction. The coil will be slightly offset from each ball, to ensure that we can sense the direction.  
 
 Sources:
 --------
