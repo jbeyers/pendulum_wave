@@ -1,9 +1,9 @@
 a = 1.2; // Thickness of the holder
-d = 24.8; // Diameter of the ball
-b = 6; // width of the holder
+d = 25.2; // Diameter of the ball
+b = 12; // width of the holder
 c = 6; // diameter of the magnet
 e = d/4; // Cutout size
-f = 2.4; // Hole size for the string
+f = 3; // Hole size for the string
 
 $fs=0.02;
 difference() {
