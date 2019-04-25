@@ -6,6 +6,7 @@ e = d/4; // Cutout size
 f = 3; // Hole size for the string
 
 $fs=0.02;
+$fa=3;
 difference() {
     hull() {
         intersection() {
